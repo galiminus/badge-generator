@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { createCanvas, loadImage } = require('canvas');
+const { createCanvas, loadImage, registerFont } = require('canvas');
 const program = require('commander');
 const fs = require('fs');
 
@@ -14,6 +14,9 @@ async function run(program) {
     OUTPUT_HEIGHT * (parseFloat(program.padding || 10) / 100) :
     OUTPUT_WIDTH * (parseFloat(program.padding || 10) / 100);
 
+  if (program.font) {
+    registerFont(program.font, { family: 'CustomBadgeFont' })
+  }
 
   const canvas = createCanvas(OUTPUT_WIDTH, OUTPUT_HEIGHT);
   const ctx = canvas.getContext('2d');
@@ -22,7 +25,7 @@ async function run(program) {
   ctx.fillStyle = program.color || '#ffffff';
 
   for (let size = (OUTPUT_HEIGHT - PADDING); size > 0; size--) {
-    ctx.font = `${size}px '${program.font || 'Arial'}'`;
+    ctx.font = `${size}px '${program.font ? 'CustomBadgeFont' : 'Arial'}'`;
 
     textSizes = [];
     for (let word_index = 0; word_index < words.length; word_index++) {
