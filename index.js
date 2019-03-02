@@ -35,12 +35,16 @@ async function run(program) {
     if (textSizes.length !== words.length) {
       continue;
     }
+    const totalHeight = textSizes.reduce((totalHeight, textSize) => (
+      totalHeight + textSize.emHeightAscent + textSize.emHeightDescent
+    ), 0);
+    if (totalHeight > OUTPUT_HEIGHT - PADDING) {
+      continue;
+    }
 
     ctx.drawImage(input_image, 0, 0, OUTPUT_WIDTH, OUTPUT_HEIGHT);
 
-    let yStart = OUTPUT_HEIGHT / 2 - textSizes.reduce((yStart, textSize) => (
-      yStart + (textSize.emHeightAscent + textSize.emHeightDescent) / 2
-    ), 0);
+    let yStart = OUTPUT_HEIGHT / 2 - totalHeight / 2;
     for (let word_index = 0; word_index < words.length; word_index++) {
       yStart += textSizes[word_index].emHeightAscent + textSizes[word_index].emHeightDescent;
       ctx.fillText(words[word_index], OUTPUT_WIDTH / 2 - textSizes[word_index].width / 2, yStart - textSizes[word_index].emHeightDescent);
