@@ -13,6 +13,8 @@ async function run(program) {
   const PADDING = OUTPUT_WIDTH > OUTPUT_HEIGHT ?
     OUTPUT_HEIGHT * (parseFloat(program.padding || 10) / 100) :
     OUTPUT_WIDTH * (parseFloat(program.padding || 10) / 100);
+    const CENTER_X = program.centerX || OUTPUT_WIDTH / 2;
+    const CENTER_Y = program.centerY || OUTPUT_HEIGHT / 2;
 
   if (program.font) {
     registerFont(program.font, { family: 'CustomBadgeFont' })
@@ -47,10 +49,10 @@ async function run(program) {
 
     ctx.drawImage(input_image, 0, 0, OUTPUT_WIDTH, OUTPUT_HEIGHT);
 
-    let yStart = OUTPUT_HEIGHT / 2 - totalHeight / 2;
+    let yStart = CENTER_Y - totalHeight / 2;
     for (let word_index = 0; word_index < words.length; word_index++) {
       yStart += textSizes[word_index].emHeightAscent + textSizes[word_index].emHeightDescent;
-      ctx.fillText(words[word_index], OUTPUT_WIDTH / 2 - textSizes[word_index].width / 2, yStart - textSizes[word_index].emHeightDescent);
+      ctx.fillText(words[word_index], CENTER_X - textSizes[word_index].width / 2, yStart - textSizes[word_index].emHeightDescent);
     }
     fs.writeFileSync(program.output, canvas.toBuffer());
 
@@ -63,8 +65,13 @@ program
   .option('-i, --input [path]', 'Input image path')
   .option('-o, --output [path]', 'Output image path')
   .option('-t, --text [string]', 'Text to print, you can add \\n for line breaks')
+
+  .option('-x, --centerX [integer]', 'X position of the text center (default: center of the input)')
+  .option('-y, --centerY [integer]', 'Y position of the text center (default: center of the input)')
+
   .option('-w, --width [integer]', 'Width of the output image (default: same as input)')
   .option('-h, --height [integer]', 'Height of the output image (default: same as input)')
+
   .option('-p, --padding [integer]', 'Padding in percentage of the output size (default: 10)')
   .option('-c, --color [string]', 'Text color (default: #ffffff)')
   .option('-f, --font [string]', 'Font to use (default: Arial)')
