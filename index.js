@@ -2,37 +2,48 @@
 
 const { createCanvas, loadImage, registerFont } = require('canvas');
 const program = require('commander');
+const Color = require('color');
 const fs = require('fs');
 
 async function run(program) {
   const input_image = await loadImage(program.input);
   const IMAGE_WIDTH = input_image.width;
   const IMAGE_HEIGHT = input_image.height;
-  const OUTPUT_WIDTH = program.width || IMAGE_WIDTH;
-  const OUTPUT_HEIGHT = program.height || IMAGE_HEIGHT;
-  const PADDING = OUTPUT_WIDTH > OUTPUT_HEIGHT ?
-    OUTPUT_HEIGHT * (parseFloat(program.padding || 10) / 100) :
-    OUTPUT_WIDTH * (parseFloat(program.padding || 10) / 100);
-    const CENTER_X = program.centerX || OUTPUT_WIDTH / 2;
-    const CENTER_Y = program.centerY || OUTPUT_HEIGHT / 2;
+  const OUTPUT_WIDTH = parseInt(program.output.width) || IMAGE_WIDTH;
+  const OUTPUT_HEIGHT = parseInt(program.output.height) || IMAGE_HEIGHT;
+  const BOX_WIDTH = parseInt(program.box.width) || OUTPUT_WIDTH;
+  const BOX_HEIGHT = parseInt(program.box.height) || OUTPUT_HEIGHT;
+  const PADDING = BOX_WIDTH > BOX_HEIGHT ?
+    BOX_HEIGHT * (parseFloat(program.box.padding || 0)) :
+    BOX_WIDTH * (parseFloat(program.box.padding || 0));
+  const CENTER_X = program.center.x || OUTPUT_WIDTH / 2;
+  const CENTER_Y = program.center.y || OUTPUT_HEIGHT / 2;
 
   if (program.font) {
-    registerFont(program.font, { family: 'CustomBadgeFont' })
+    registerFont(program.font, { family: 'CustomFont' });
   }
 
   const canvas = createCanvas(OUTPUT_WIDTH, OUTPUT_HEIGHT);
   const ctx = canvas.getContext('2d');
 
+  if (program.shadow) {
+    ctx.shadowColor = Color(program.shadow.color).alpha(parseFloat(program.shadow.alpha))
+    ctx.shadowOffsetX = parseInt(program.shadow.offsetX);
+    ctx.shadowOffsetY = parseInt(program.shadow.offsetX);
+    ctx.shadowBlur = parseInt(program.shadow.blur);
+  }
+
+
   const words = program.text.split("\\n");
   ctx.fillStyle = program.color || '#ffffff';
 
-  for (let size = (OUTPUT_HEIGHT - PADDING); size > 0; size--) {
-    ctx.font = `${size}px '${program.font ? 'CustomBadgeFont' : 'Arial'}'`;
+  for (let size = (BOX_HEIGHT - PADDING); size > 0; size--) {
+    ctx.font = `${size}px '${program.font ? 'CustomFont' : 'Arial'}'`;
 
     textSizes = [];
     for (let word_index = 0; word_index < words.length; word_index++) {
       let textSize = ctx.measureText(words[word_index]);
-      if (textSize.width >= (OUTPUT_WIDTH - PADDING)) {
+      if (textSize.width >= (BOX_WIDTH - PADDING)) {
         continue ;
       }
       textSizes.push(textSize);
@@ -43,7 +54,7 @@ async function run(program) {
     const totalHeight = textSizes.reduce((totalHeight, textSize) => (
       totalHeight + textSize.emHeightAscent + textSize.emHeightDescent
     ), 0);
-    if (totalHeight > OUTPUT_HEIGHT - PADDING) {
+    if (totalHeight > BOX_HEIGHT - PADDING) {
       continue;
     }
 
@@ -54,7 +65,7 @@ async function run(program) {
       yStart += textSizes[word_index].emHeightAscent + textSizes[word_index].emHeightDescent;
       ctx.fillText(words[word_index], CENTER_X - textSizes[word_index].width / 2, yStart - textSizes[word_index].emHeightDescent);
     }
-    fs.writeFileSync(program.output, canvas.toBuffer());
+    fs.writeFileSync(program.output.path, canvas.toBuffer());
 
     break;
   }
@@ -62,19 +73,36 @@ async function run(program) {
 
 program
   .version('1.0.0', '-v, --version')
-  .option('-i, --input [path]', 'Input image path')
-  .option('-o, --output [path]', 'Output image path')
-  .option('-t, --text [string]', 'Text to print, you can add \\n for line breaks')
+  .option('-i, --input <path>', 'Input image path')
+  .option('-o, --output <path>,[width],[height]', 'Output image path with optional [width] and [height]', (output) => {
+    const [path, width, height] = output.split(',');
 
-  .option('-x, --centerX [integer]', 'X position of the text center (default: center of the input)')
-  .option('-y, --centerY [integer]', 'Y position of the text center (default: center of the input)')
+    return ({ path, width, height });
+  })
+  .option('-t, --text <string>', 'Text to print, you can add \\n for line breaks')
+  .option('-c, --center <x>,<y>', 'Position of the text center, <x>,<y> (default: center of the input)', (center) => {
+    const [x, y] = center.split(',');
 
-  .option('-w, --width [integer]', 'Width of the output image (default: same as input)')
-  .option('-h, --height [integer]', 'Height of the output image (default: same as input)')
+    return ({ x, y });
+  })
+  .option('-b, --box <width>,<height>,[padding]', 'Width and height of the text box (default: dimensions of the output)', (box) => {
+    const [width, height, padding] = box.split(',');
 
-  .option('-p, --padding [integer]', 'Padding in percentage of the output size (default: 10)')
-  .option('-c, --color [string]', 'Text color (default: #ffffff)')
-  .option('-f, --font [string]', 'Font to use (default: Arial)')
+    return ({ width, height });
+  })
+  .option('-s, --shadow <offsetX>,<offsetY>,<blur>,<color>,<alpha>', 'Shadow parameters (default: no shadow)', (shadow) => {
+    const [offsetX, offsetY, blur, color, alpha] = shadow.split(',');
+
+    if ([offsetX, offsetY, blur, color, alpha].some((parameter) => !parameter)) {
+      program.outputHelp();
+      process.exit(1);
+    }
+
+    return ({ offsetX, offsetY, blur, color, alpha });
+  })
+
+  .option('-c, --color <string>', 'Text color (default: #ffffff)')
+  .option('-f, --font <string>', 'Font to use (default: Arial)')
   .parse(process.argv)
 
 if (!program.input || !program.output || !program.text) {
