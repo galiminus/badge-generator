@@ -9,15 +9,16 @@ async function run(program) {
   const input_image = await loadImage(program.input);
   const IMAGE_WIDTH = input_image.width;
   const IMAGE_HEIGHT = input_image.height;
-  const OUTPUT_WIDTH = parseInt(program.output.width) || IMAGE_WIDTH;
-  const OUTPUT_HEIGHT = parseInt(program.output.height) || IMAGE_HEIGHT;
-  const BOX_WIDTH = parseInt(program.box.width) || OUTPUT_WIDTH;
-  const BOX_HEIGHT = parseInt(program.box.height) || OUTPUT_HEIGHT;
+  const OUTPUT_WIDTH = parseInt(program.output && program.output.width) || IMAGE_WIDTH;
+  const OUTPUT_HEIGHT = parseInt(program.output && program.output.height) || IMAGE_HEIGHT;
+  const BOX_WIDTH = parseInt(program.box && program.box.width) || OUTPUT_WIDTH;
+  const BOX_HEIGHT = parseInt(program.box && program.box.height) || OUTPUT_HEIGHT;
   const PADDING = BOX_WIDTH > BOX_HEIGHT ?
-    BOX_HEIGHT * (parseFloat(program.box.padding || 0)) :
-    BOX_WIDTH * (parseFloat(program.box.padding || 0));
-  const CENTER_X = program.center.x || OUTPUT_WIDTH / 2;
-  const CENTER_Y = program.center.y || OUTPUT_HEIGHT / 2;
+    BOX_HEIGHT * (parseFloat(program.box && program.box.padding || 0)) :
+    BOX_WIDTH * (parseFloat(program.box && program.box.padding || 0));
+  const CENTER_X = (program.position && program.position.x) || OUTPUT_WIDTH / 2;
+  const CENTER_Y = (program.position && program.position.y) || OUTPUT_HEIGHT / 2;
+  const ALIGN = program.alignment || 'center';
 
   if (program.font) {
     registerFont(program.font, { family: 'CustomFont' });
@@ -32,7 +33,6 @@ async function run(program) {
     ctx.shadowOffsetY = parseInt(program.shadow.offsetX);
     ctx.shadowBlur = parseInt(program.shadow.blur);
   }
-
 
   const words = program.text.split("\\n");
   ctx.fillStyle = program.color || '#ffffff';
@@ -63,7 +63,17 @@ async function run(program) {
     let yStart = CENTER_Y - totalHeight / 2;
     for (let word_index = 0; word_index < words.length; word_index++) {
       yStart += textSizes[word_index].emHeightAscent + textSizes[word_index].emHeightDescent;
-      ctx.fillText(words[word_index], CENTER_X - textSizes[word_index].width / 2, yStart - textSizes[word_index].emHeightDescent);
+
+      let textX;
+      if (ALIGN === 'center') {
+        textX =  CENTER_X - textSizes[word_index].width / 2;
+      } else if (ALIGN === 'left') {
+        textX =  CENTER_X - (BOX_WIDTH / 2) + PADDING;
+      } else if (ALIGN === 'right') {
+        textX =  CENTER_X + (BOX_WIDTH / 2) - PADDING - textSizes[word_index].width;
+      }
+
+      ctx.fillText(words[word_index], textX, yStart - textSizes[word_index].emHeightDescent);
     }
     fs.writeFileSync(program.output.path, canvas.toBuffer());
 
@@ -80,8 +90,9 @@ program
     return ({ path, width, height });
   })
   .option('-t, --text <string>', 'Text to print, you can add \\n for line breaks')
-  .option('-c, --center <x>,<y>', 'Position of the text center, <x>,<y> (default: center of the input)', (center) => {
-    const [x, y] = center.split(',');
+  .option('-a, --alignment <string>', 'How to align the text relative to the box edges: can be left, center, right (default: center)')
+  .option('-p, --position <x>,<y>', 'Position of the text center, <x>,<y> (default: center of the input)', (position) => {
+    const [x, y] = position.split(',');
 
     return ({ x, y });
   })
