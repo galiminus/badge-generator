@@ -16,8 +16,8 @@ async function run(program) {
   const PADDING = BOX_WIDTH > BOX_HEIGHT ?
     BOX_HEIGHT * (parseFloat(program.box && program.box.padding || 0)) :
     BOX_WIDTH * (parseFloat(program.box && program.box.padding || 0));
-  const CENTER_X = (program.position && program.position.x) || OUTPUT_WIDTH / 2;
-  const CENTER_Y = (program.position && program.position.y) || OUTPUT_HEIGHT / 2;
+  const CENTER_X = parseInt(program.position && program.position.x) || OUTPUT_WIDTH / 2;
+  const CENTER_Y = parseInt(program.position && program.position.y) || OUTPUT_HEIGHT / 2;
   const ALIGN = program.alignment || 'center';
 
   if (program.font) {
@@ -63,17 +63,15 @@ async function run(program) {
     let yStart = CENTER_Y - totalHeight / 2;
     for (let word_index = 0; word_index < words.length; word_index++) {
       yStart += textSizes[word_index].emHeightAscent + textSizes[word_index].emHeightDescent;
-
       let textX;
       if (ALIGN === 'center') {
-        textX =  CENTER_X - textSizes[word_index].width / 2;
+        textX = CENTER_X - textSizes[word_index].width / 2;
       } else if (ALIGN === 'left') {
-        textX =  CENTER_X - (BOX_WIDTH / 2) + PADDING;
+        textX = CENTER_X - (BOX_WIDTH / 2) + PADDING;
       } else if (ALIGN === 'right') {
-        textX =  CENTER_X + (BOX_WIDTH / 2) - PADDING - textSizes[word_index].width;
+        textX = CENTER_X + (BOX_WIDTH / 2) - PADDING - textSizes[word_index].width;
       }
-
-      ctx.fillText(words[word_index], textX, yStart - textSizes[word_index].emHeightDescent);
+      ctx.fillText(words[word_index], parseInt(textX), parseInt(yStart - textSizes[word_index].emHeightDescent));
     }
     fs.writeFileSync(program.output.path, canvas.toBuffer());
 
